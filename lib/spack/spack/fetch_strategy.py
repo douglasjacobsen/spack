@@ -100,12 +100,11 @@ class FetchStrategy(object):
     #: The URL attribute must be specified either at the package class
     #: level, or as a keyword argument to ``version()``.  It is used to
     #: distinguish fetchers for different versions in the package DSL.
-    url_attr = None  # type: Optional[str]
+    url_attr = None
 
     #: Optional attributes can be used to distinguish fetchers when :
     #: classes have multiple ``url_attrs`` at the top-level.
-    # optional attributes in version() args.
-    optional_attrs = []  # type: List[str]
+    optional_attrs = []  # optional attributes in version() args.
 
     def __init__(self, **kwargs):
         # The stage is initialized late, so that fetch strategies can be
@@ -299,15 +298,7 @@ class URLFetchStrategy(FetchStrategy):
 
     @property
     def candidate_urls(self):
-        urls = []
-
-        for url in [self.url] + (self.mirrors or []):
-            if url.startswith('file://'):
-                path = urllib_parse.quote(url[len('file://'):])
-                url = 'file://' + path
-            urls.append(url)
-
-        return urls
+        return [self.url] + (self.mirrors or [])
 
     @_needs_stage
     def fetch(self):
@@ -318,6 +309,13 @@ class URLFetchStrategy(FetchStrategy):
         url = None
         errors = []
         for url in self.candidate_urls:
+
+            if url[0:1] == 'gs':
+                import spack.util.gcs as gcs_util
+                parsed_url = urllib_parse.urlparse(url)
+                gcs = gcs_util.GCSBlob(parsed_url)
+                url = gcsblob.gcs_url()
+
             if not self._existing_url(url):
                 continue
 
@@ -337,7 +335,6 @@ class URLFetchStrategy(FetchStrategy):
 
     def _existing_url(self, url):
         tty.debug('Checking existence of {0}'.format(url))
-
         if spack.config.get('config:url_fetch_method') == 'curl':
             curl = self.curl
             # Telling curl to fetch the first byte (-r 0-0) is supposed to be
@@ -484,7 +481,7 @@ class URLFetchStrategy(FetchStrategy):
         self._check_headers(headers)
         return partial_file, save_file
 
-    @property  # type: ignore # decorated properties unsupported in mypy
+    @property
     @_needs_stage
     def archive_file(self):
         """Path to the source archive within this stage directory."""
@@ -527,8 +524,6 @@ class URLFetchStrategy(FetchStrategy):
         tarball_container = os.path.join(self.stage.path,
                                          "spack-expanded-archive")
 
-        # Below we assume that the command to decompress expand the
-        # archive in the current working directory
         mkdirp(tarball_container)
         with working_dir(tarball_container):
             decompress(self.archive_file)
@@ -1590,6 +1585,7 @@ def from_url_scheme(url, *args, **kwargs):
             'https': 'url',
             'ftp': 'url',
             'ftps': 'url',
+            'gs':'url',
         })
 
     scheme = parsed_url.scheme
