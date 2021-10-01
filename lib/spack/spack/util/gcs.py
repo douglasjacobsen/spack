@@ -13,88 +13,135 @@ import sys
 
 import llnl.util.tty as tty
 
-class GCSBlob:
-    def __init__(self, url):
-        from google.cloud import storage
-        import google.auth
+def gcs_client():
+    from google.cloud import storage
+    import google.auth
 
-        self.url = url
-        (self.bucket_name, self.blob_path) = self.get_bucket_blob_path()
-        if url.scheme != 'gs':
-            raise ValueError('Can not create GCS blob connection with scheme: {SCHEME}'
-                             .format(SCHEME=url.scheme))
+    storage_credentials, storage_project = google.auth.default()
+    storage_client = storage.Client(storage_project,
+                                    storage_credentials)
+    return storage_client
 
-        self.storage_credentials, self.storage_project = google.auth.default()
-        self.storage_client = storage.Client(self.storage_project,
-                                             self.storage_credentials)
-        if not self.gcs_bucket_exists():
-            tty.warn("The bucket {} does not exist, it will be created"
-                     .format(self.bucket_name))
-            self.storage_client.create_bucket(self.bucket_name)
+class GCSBucket:
+    def __init__(self, url, client=None):
+        self. url = url
+        self.name = self.url.netloc
+        tty.debug("bucket_name = {}".format(self.name))
 
-    def get_bucket_blob_path(self):
-        blob_path = self.url.path
-        if blob_path[0] == '/':
-            blob_path = blob_path[1:]
-        bucket_name = self.url.netloc
-        tty.debug("bucket_name = {}, blob_path = {}".format(bucket_name, blob_path))
-        return (bucket_name, blob_path)
+        if not client:
+            self.client = gcs_client()
+        else:
+            self.client = client
 
-    def get_blob(self):
-        return self.storage_client.get_bucket(self.bucket_name).get_blob(self.blob_path)
+        self.bucket = None
 
-    def is_https(self):
-        return False
+    def exists(self):
+        if not self.bucket:
+            try:
+                self.bucket = self.client.bucket(self.bucket_name)
+            except Exception as ex:
+                tty.error("{}, Failed check for bucket existence".format(ex))
+                sys.exit(1)
+        return (self.bucket is not None)
 
-    def gcs_bucket_exists(self):
+    def create(self):
+        if not self.bucket:
+            self.bucket = self.client.create_bucket(self.name)
+
+    def get_blob(self, blob_path):
+        if self.exists():
+            return self.bucket.get_blob(blob_path)
+        return None
+
+    def blob(self, blob_path):
+        if self.exists():
+
+    def get_all_blobs(self):
         try:
-            bucket = self.storage_client.bucket(self.bucket_name)
-        except Exception as ex:
-            tty.error("{}, Failed check for bucket existence".format(ex))
-            sys.exit(1)
-        return (bucket is not None)
-
-    def gcs_blob_exists(self):
-        from google.cloud import storage
-        try:
-            blob = self.storage_client.bucket(self.bucket_name).blob(self.blob_path)
-            blob_exists = blob.exists()
-        except Exception:
-            return False
-
-        return blob_exists
-
-    def gcs_delete_blob(self):
-        try:
-            bucket = self.storage_client.bucket(self.bucket_name)
-            blob = bucket.blob(self.blob_path)
-            blob.delete()
-        except Exception as ex:
-            tty.error("{}, Could not delete gcs blob {}".format(ex, self.blob_path))
-
-    def gcs_upload_to_blob(self, local_file_path):
-        try:
-            bucket = self.storage_client.bucket(self.bucket_name)
-            blob = bucket.blob(self.blob_path.lstrip("/"))
-            blob.upload_from_filename(local_file_path)
-        except Exception as ex:
-            tty.error("{}, Could not upload {} to gcs blob storage"
-                      .format(ex, local_file_path))
-            sys.exit(1)
-
-    def gcs_list_blobs(self):
-        try:
-            blobs = self.storage_client.list_blobs(self.bucket_name,
-                                                   prefix=self.blob_path)
+            all_blobs = self.bucket.list_blobs()
             blob_list = []
-            for blob in blobs:
+            for blob in all_blobs:
                 p = blob.name.split('/')
                 build_cache_index = p.index('build_cache')
                 blob_list.append(os.path.join(*p[build_cache_index + 1:]))
             return blob_list
-
         except Exception as ex:
-            tty.error("{}, Could not get a list of gcs blobs".format(ex))
+            tty.error("{}, Could not get a list of all GCS blobs.".format(ex))
+            sys.exit(1)
+
+    def destroy(self):
+        try:
+            bucket_blobs = self.get_all_blobs()
+            batch_size = 1000
+
+            num_blobs = len(bucket_blobs)
+            for i in range(0, num_blobs, batch_size):
+                with self.client.batch():
+                    for j in range(i, min(i+batch_size, num_blobs)):
+                        bucket_blobs[j].delete()
+        except Exception as ex:
+            tty.error("{}, Could not delete a blob in bucket {}.".format(ex, self.name))
+            sys.exit(1)
+
+        try:
+            self.bucket.delete()
+        except Exception as ex:
+            tty.error("{}, Could not destroy bucket {}.".format(ex, self.name))
+            sys.exit(1)
+
+class GCSBlob:
+    def __init__(self, url, client=None):
+
+        self.url = url
+        if url.scheme != 'gs':
+            raise ValueError('Can not create GCS blob connection with scheme: {SCHEME}'
+                             .format(SCHEME=url.scheme))
+
+        if not client:
+            self.client = gcs_client()
+        else:
+            self.client = client
+
+        self.bucket = GCSBucket(url)
+
+        if self.url.path[0] == '/':
+            self.blob_path = self.url.path[1:]
+        else:
+            self.blob_path = self.url.path
+
+        tty.debug("blob_path = {}".format(self.blob_path))
+
+        if not self.bucket.exists():
+            tty.warn("The bucket {} does not exist, it will be created"
+                     .format(self.bucket_name))
+            self.bucket.create()
+
+    def get(self):
+        return self.bucket.get_blob(self.blob_path)
+
+    def exists(self):
+        try:
+            blob = self.bucket.blob(self.blob_path)
+            exists = blob.exists()
+        except Exception:
+            return False
+
+        return exists
+
+    def delete_blob(self):
+        try:
+            blob = self.bucket.blob(self.blob_path)
+            blob.delete()
+        except Exception as ex:
+            tty.error("{}, Could not delete gcs blob {}".format(ex, self.blob_path))
+
+    def upload_to_blob(self, local_file_path):
+        try:
+            blob = self.bucket.blob(self.blob_path.lstrip("/"))
+            blob.upload_from_filename(local_file_path)
+        except Exception as ex:
+            tty.error("{}, Could not upload {} to gcs blob storage"
+                      .format(ex, local_file_path))
             sys.exit(1)
 
     def get_blob_byte_stream(self):
@@ -110,24 +157,4 @@ class GCSBlob:
         headers['MD5Hash'] = blob.md5_hash
 
         return headers
-
-    def gcs_url(self):
-        import os
-        from google.auth.transport import requests
-        from google.auth import compute_engine
-        from datetime import datetime, timedelta
-
-        try:
-            auth_request = requests.Request()
-            data_bucket = self.storage_client.lookup_bucket(self.bucket_name)
-            blob = data_bucket.get_blob(self.blob_path)
-
-            if blob is not None:
-                return blob.path()
-            return None
-
-        except Exception as ex:
-            tty.error("{}, Could not generate a URL for GCS blob storage"
-                      .format(ex))
-            sys.exit(1)
 

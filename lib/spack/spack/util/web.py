@@ -76,10 +76,8 @@ def uses_ssl(parsed_url):
             return True
 
     elif parsed_url.scheme == 'gs':
-        gcs = gcs_util.GCSBlob(parsed_url)
-        if gcs.is_https():
-            tty.debug("(uses_ssl) GCS Blob is https")
-            return True
+        tty.debug("(uses_ssl) GCS Blob is https")
+        return True
 
     return False
 
@@ -205,7 +203,7 @@ def push_to_url(
 
     elif remote_url.scheme == 'gs':
         gcs = gcs_util.GCSBlob(remote_url)
-        gcs.gcs_upload_to_blob(local_file_path)
+        gcs.upload_to_blob(local_file_path)
         if not keep_original:
             os.remove(local_file_path)
 
@@ -234,7 +232,7 @@ def url_exists(url):
 
     elif url.scheme == 'gs':
         gcs = gcs_util.GCSBlob(url)
-        return gcs.gcs_blob_exists()
+        return gcs.exists()
 
     # otherwise, just try to "read" from the URL, and assume that *any*
     # non-throwing response contains the resource represented by the URL
@@ -245,22 +243,57 @@ def url_exists(url):
         return False
 
 
-def remove_url(url):
+def remove_url(url, recursive=False):
     url = url_util.parse(url)
 
     local_path = url_util.local_file_path(url)
     if local_path:
-        os.remove(local_path)
+        if recursive:
+            shutil.rmtree(local_path)
+        else:
+            os.remove(local_path)
         return
 
     if url.scheme == 's3':
         s3 = s3_util.create_s3_session(url)
-        s3.delete_object(Bucket=url.netloc, Key=url.path)
+        bucket = url.netloc
+        if recursive:
+            # Because list_objects_v2 can only return up to 1000 items
+            # at a time, we have to paginate to make sure we get it all
+            prefix = url.path.strip('/')
+            paginator = s3.get_paginator('list_objects_v2')
+            pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
+
+            delete_request = {'Objects': []}
+            for item in pages.search('Contents'):
+                if not item:
+                    continue
+
+                delete_request['Objects'].append({'Key': item['Key']})
+
+                # Make sure we do not try to hit S3 with a list of more
+                # than 1000 items
+                if len(delete_request['Objects']) >= 1000:
+                    r = s3.delete_objects(Bucket=bucket, Delete=delete_request)
+                    _debug_print_delete_results(r)
+                    delete_request = {'Objects': []}
+
+            # Delete any items that remain
+            if len(delete_request['Objects']):
+                r = s3.delete_objects(Bucket=bucket, Delete=delete_request)
+                _debug_print_delete_results(r)
+        else:
+            s3.delete_object(Bucket=bucket, Key=url.path.lstrip('/'))
         return
 
+
     elif url.scheme == 'gs':
-        gcs = gcs_util.GCSBlob(url)
-        gcs.gcs_delete_blob()
+        if recursive:
+            bucket = gcs_util.GCSBucket(url)
+            bucket.destroy()
+        else:
+            blob = gcs_util.GCSBlob(url)
+            blob._delete_blob()
         return
 
     # Don't even try for other URL schemes.
@@ -343,8 +376,8 @@ def list_url(url, recursive=False):
             for key in _iter_s3_prefix(s3, url)))
 
     elif url.scheme == 'gs':
-        gcs = gcs_util.GCSBlob(url)
-        return gcs.gcs_list_blobs()
+        gcs = gcs_util.GCSBucket(url)
+        return gcs.get_all_blobs()
 
 
 def spider(root_urls, depth=0, concurrency=32):
