@@ -38,7 +38,7 @@ class GCSBucket:
     def exists(self):
         if not self.bucket:
             try:
-                self.bucket = self.client.bucket(self.bucket_name)
+                self.bucket = self.client.bucket(self.name)
             except Exception as ex:
                 tty.error("{}, Failed check for bucket existence".format(ex))
                 sys.exit(1)
@@ -55,30 +55,47 @@ class GCSBucket:
 
     def blob(self, blob_path):
         if self.exists():
+            return self.bucket.blob(blob_path)
+        return None
 
-    def get_all_blobs(self):
-        try:
-            all_blobs = self.bucket.list_blobs()
-            blob_list = []
-            for blob in all_blobs:
-                p = blob.name.split('/')
-                build_cache_index = p.index('build_cache')
-                blob_list.append(os.path.join(*p[build_cache_index + 1:]))
-            return blob_list
-        except Exception as ex:
-            tty.error("{}, Could not get a list of all GCS blobs.".format(ex))
-            sys.exit(1)
+    def get_all_blobs(self, relative=True):
+        if self.exists():
+            try:
+                all_blobs = self.bucket.list_blobs()
+                blob_list = []
+
+                if not relative:
+                    # If we do not want relative paths, just return the list
+                    for blob in all_blobs:
+                        blob_list.append(blob.name)
+                else:
+                    # To create relative paths, strip everything before 'build_cache'
+                    for blob in all_blobs:
+                        p = blob.name.split('/')
+                        try:
+                            build_cache_index = p.index('build_cache')
+                            blob_list.append(os.path.join(*p[build_cache_index + 1:]))
+                        except ValueError as ex:
+                            blob_list.append(os.path.join(*p[:]))
+
+                        tty.debug("Blob name = {}, converted blob name = {}".format(blob.name, blob_list[-1]))
+
+                return blob_list
+            except Exception as ex:
+                tty.error("{}, Could not get a list of all GCS blobs.".format(ex))
+                sys.exit(1)
 
     def destroy(self):
         try:
-            bucket_blobs = self.get_all_blobs()
+            bucket_blobs = self.get_all_blobs(relative=False)
             batch_size = 1000
 
             num_blobs = len(bucket_blobs)
             for i in range(0, num_blobs, batch_size):
                 with self.client.batch():
                     for j in range(i, min(i+batch_size, num_blobs)):
-                        bucket_blobs[j].delete()
+                        blob = self.blob(bucket_blobs[j])
+                        blob.delete()
         except Exception as ex:
             tty.error("{}, Could not delete a blob in bucket {}.".format(ex, self.name))
             sys.exit(1)
@@ -113,7 +130,7 @@ class GCSBlob:
 
         if not self.bucket.exists():
             tty.warn("The bucket {} does not exist, it will be created"
-                     .format(self.bucket_name))
+                     .format(self.bucket.name))
             self.bucket.create()
 
     def get(self):
@@ -145,10 +162,10 @@ class GCSBlob:
             sys.exit(1)
 
     def get_blob_byte_stream(self):
-        return self.get_blob().open(mode='rb')
+        return self.bucket.get_blob(self.blob_path).open(mode='rb')
 
     def get_blob_headers(self):
-        blob = self.get_blob()
+        blob = self.bucket.get_blob(self.blob_path)
 
         headers = {}
         headers['Content-type'] = blob.content_type
