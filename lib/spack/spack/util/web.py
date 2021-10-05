@@ -294,7 +294,7 @@ def remove_url(url, recursive=False):
             s3.delete_object(Bucket=bucket, Key=url.path.lstrip('/'))
         return
 
-    elif url.scheme == 'gs':
+    elif url.scheme == 'gcs':
         if recursive:
             bucket = gcs_util.GCSBucket(url)
             bucket.destroy()
