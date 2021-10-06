@@ -252,6 +252,7 @@ def _debug_print_delete_results(result):
 
 
 def remove_url(url, recursive=False):
+    tty.debug('In remove_url... Rec: {0}'.format(recursive))
     url = url_util.parse(url)
 
     local_path = url_util.local_file_path(url)
@@ -294,13 +295,13 @@ def remove_url(url, recursive=False):
             s3.delete_object(Bucket=bucket, Key=url.path.lstrip('/'))
         return
 
-    elif url.scheme == 'gcs':
+    elif url.scheme == 'gs':
         if recursive:
             bucket = gcs_util.GCSBucket(url)
-            bucket.destroy()
+            bucket.destroy(recursive=recursive)
         else:
             blob = gcs_util.GCSBlob(url)
-            blob._delete_blob()
+            blob.delete_blob()
         return
 
     # Don't even try for other URL schemes.
@@ -384,7 +385,7 @@ def list_url(url, recursive=False):
 
     elif url.scheme == 'gs':
         gcs = gcs_util.GCSBucket(url)
-        return gcs.get_all_blobs()
+        return gcs.get_all_blobs(recursive=recursive)
 
 
 def spider(root_urls, depth=0, concurrency=32):
@@ -546,6 +547,7 @@ def _urlopen(req, *args, **kwargs):
         opener = spack.s3_handler.open
     elif url_util.parse(url).scheme == 'gs':
         import spack.gcs_handler
+        opener = spack.gcs_handler.gcs_open
         return spack.gcs_handler.gcs_open(req)
 
     try:
