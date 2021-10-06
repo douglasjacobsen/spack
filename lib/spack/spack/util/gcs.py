@@ -50,9 +50,6 @@ class GCSBucket(object):
             self.prefix = self.url.path[1:]
         else:
             self.prefix = self.url.path
-        self.prefix_end = self.prefix.split('/')[-1]
-
-        tty.debug("bucket_name = {0}, prefix = {1}".format(self.name, self.prefix))
 
         if not client:
             self.client = gcs_client()
@@ -60,6 +57,9 @@ class GCSBucket(object):
             self.client = client
 
         self.bucket = None
+        tty.debug('New GCS bucket:')
+        tty.debug("    name: {0}".format(self.name))
+        tty.debug("    prefix: {0}".format(self.prefix))
 
     def exists(self):
         from google.cloud.exceptions import NotFound
@@ -85,7 +85,7 @@ class GCSBucket(object):
             return self.bucket.blob(blob_path)
         return None
 
-    def get_all_blobs(self, recursive=True, relative=True):
+    def get_all_blobs(self, recursive=True):
         """Get a list of all blobs
         Returns a list of all blobs within this bucket.
 
@@ -95,54 +95,25 @@ class GCSBucket(object):
                       If false, print absolute blob paths (useful for
                          destruction of bucket)
         """
+        tty.debug('Getting GCS blobs... Recurse {0}'.format(
+            recursive))
         if self.exists():
-            if recursive:
-                all_blobs = self.bucket.list_blobs(prefix=self.prefix)
-            else:
-                all_blobs = self.bucket.list_blobs(prefix=self.prefix,
-                                           max_offset=self.prefix+'/')
+            all_blobs = self.bucket.list_blobs(prefix=self.prefix)
             blob_list = []
 
-            if relative:
-                name_converter = self._relative_blob_name
-            else:
-                name_converter = str
+            base_dirs = len(self.prefix.split('/'))
 
             for blob in all_blobs:
-                converted_name = name_converter(blob.name)
-                tty.debug("Blob name = {0} --> {1}"
-                          .format(blob.name, converted_name))
-                blob_list.append( converted_name )
-
-            #if not relative:
-            #    # If we do not want relative paths, just return the list
-            #    for blob in all_blobs:
-            #        blob_list.append(blob.name)
-            #else:
-            #    # To create relative paths, strip everything before 'build_cache'
-            #    for blob in all_blobs:
-            #        p = blob.name.split('/')
-            #        try:
-            #            build_cache_index = p.index('build_cache')
-            #            blob_list.append(os.path.join(*p[build_cache_index + 1:]))
-            #        except ValueError:
-            #            blob_list.append(os.path.join(*p[:]))
-
-            #        tty.debug("Blob name = {0}, converted blob name = {1}".format(
-            #                  blob.name, blob_list[-1]))
+                if not recursive:
+                    num_dirs = len(blob.name.split('/'))
+                    if num_dirs <= base_dirs:
+                        blob_list.append(blob.name)
+                else:
+                    blob_list.append( blob.name )
 
             return blob_list
 
-    def _relative_blob_name(self, blob_name):
-        parts = blob_name.split('/')
-        try:
-            pe_index = parts.index(self.prefix_end)
-            return os.path.join(*parts[pe_index + 1:])
-        except ValueError:
-            return os.path.join(*parts[:])
-
-
-    def destroy(self):
+    def destroy(self, recursive=False, **kwargs):
         """Bucket destruction method
 
         Deletes all blobs within the bucket, and then deletes the bucket itself.
@@ -151,7 +122,7 @@ class GCSBucket(object):
         """
         from google.cloud.exceptions import NotFound
         try:
-            bucket_blobs = self.get_all_blobs(relative=False)
+            bucket_blobs = self.get_all_blobs(recursive=recursive)
             batch_size = 1000
 
             num_blobs = len(bucket_blobs)
