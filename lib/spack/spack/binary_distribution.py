@@ -732,7 +732,6 @@ def generate_package_index(cache_prefix):
 
     tty.debug('Retrieving spec descriptor files from {0} to build index'.format(
         cache_prefix))
-    tty.debug("   file list = {0}".format(file_list))
 
     all_mirror_specs = {}
 
