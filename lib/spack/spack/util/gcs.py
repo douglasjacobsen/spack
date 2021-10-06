@@ -62,7 +62,7 @@ class GCSBucket(object):
         self.bucket = None
 
     def exists(self):
-        fromt google.cloud.exceptions import NotFound
+        from google.cloud.exceptions import NotFound
         if not self.bucket:
             try:
                 self.bucket = self.client.bucket(self.name)
