@@ -1410,7 +1410,7 @@ class S3FetchStrategy(URLFetchStrategy):
 @fetcher
 class GCSFetchStrategy(URLFetchStrategy):
     """FetchStrategy that pulls from a GCS bucket."""
-    url_attr = 'gcs'
+    url_attr = 'gs'
 
     def __init__(self, *args, **kwargs):
         try:
@@ -1427,7 +1427,7 @@ class GCSFetchStrategy(URLFetchStrategy):
             return
 
         parsed_url = url_util.parse(self.url)
-        if parsed_url.scheme != 'gcs':
+        if parsed_url.scheme != 'gs':
             raise FetchError(
                 'GCSFetchStrategy can only fetch from gs:// urls.')
 
