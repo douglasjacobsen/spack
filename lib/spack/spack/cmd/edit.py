@@ -10,6 +10,7 @@ import os
 import llnl.util.tty as tty
 
 import spack.cmd
+import spack.config
 import spack.paths
 import spack.repo
 import spack.util.editor
@@ -117,10 +118,12 @@ def locate_file(name: str, path: str) -> str:
 def edit(parser, args):
     names = args.package
 
+    debug = spack.config.get("config:debug")
+
     # If `--command`, `--test`, or `--module` is chosen, edit those instead
     if args.path:
         paths = [locate_file(name, args.path) for name in names] if names else [args.path]
-        spack.util.editor.editor(*paths)
+        spack.util.editor.editor(*paths, debug=debug)
     elif names:
         if args.repo:
             repo = spack.repo.from_path(args.repo)
@@ -129,7 +132,7 @@ def edit(parser, args):
         else:
             repo = spack.repo.PATH
         paths = [locate_package(name, repo) for name in names]
-        spack.util.editor.editor(*paths)
+        spack.util.editor.editor(*paths, debug=debug)
     else:
         # By default open the directory where packages live
-        spack.util.editor.editor(spack.paths.packages_path)
+        spack.util.editor.editor(spack.paths.packages_path, debug=debug)
