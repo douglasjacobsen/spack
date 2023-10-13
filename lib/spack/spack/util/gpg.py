@@ -10,8 +10,7 @@ import re
 
 import llnl.util.filesystem
 
-import spack.error
-import spack.paths
+import spack.util.error
 import spack.util.executable
 import spack.version
 
@@ -31,7 +30,7 @@ def clear():
     GPG, GPGCONF, SOCKET_DIR, GNUPGHOME = None, None, None, None
 
 
-def init(gnupghome=None, force=False):
+def init(gnupghome=None, force=False, gpg_path=None):
     """Initialize the global objects in the module, if not set.
 
     When calling any gpg executable, the GNUPGHOME environment
@@ -58,7 +57,7 @@ def init(gnupghome=None, force=False):
         return
 
     # Set the value of GNUPGHOME to be used in this module
-    GNUPGHOME = gnupghome or os.getenv("SPACK_GNUPGHOME") or spack.paths.gpg_path
+    GNUPGHOME = gnupghome or os.getenv("SPACK_GNUPGHOME") or gpg_path
 
     # Set the executable objects for "gpg" and "gpgconf"
     with spack.bootstrap.ensure_bootstrap_configuration():
@@ -167,7 +166,7 @@ def _get_unimported_public_keys(output):
     return keys
 
 
-class SpackGPGError(spack.error.SpackError):
+class SpackGPGError(spack.util.error.UtilityError):
     """Class raised when GPG errors are detected."""
 
 
