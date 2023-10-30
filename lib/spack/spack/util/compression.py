@@ -14,7 +14,7 @@ from typing import Any, BinaryIO, Callable, Dict, List, Optional
 import llnl.url
 from llnl.util import tty
 
-from spack.error import SpackError
+from spack.util.error import UtilityError
 from spack.util.executable import CommandNotFoundError, which
 
 try:
@@ -354,7 +354,7 @@ def decompressor_for_win(extension: str) -> Callable[[str], Any]:
         else None
     )
     if not decompressor:
-        raise SpackError(
+        raise UtilityError(
             "Spack was unable to determine a proper decompression strategy for"
             f"valid extension: {extension}"
             "This is a bug, please file an issue at https://github.com/spack/spack/issues"
