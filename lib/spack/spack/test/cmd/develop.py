@@ -11,6 +11,7 @@ import llnl.util.filesystem as fs
 
 import spack.config
 import spack.environment as ev
+import spack.paths
 import spack.spec
 from spack.main import SpackCommand
 
@@ -120,7 +121,10 @@ class TestDevelop:
         env("create", "test")
         with ev.read("test") as e:
             path = "../$user"
-            abspath = spack.util.path.canonicalize_path(path, e.path)
+            abspath = spack.util.path.canonicalize_path(
+                path, e.path,
+                replacements=spack.paths.path_replacements()
+            )
 
             def check_path(stage, dest):
                 assert dest == abspath
@@ -137,7 +141,10 @@ class TestDevelop:
         env("create", "test")
         with ev.read("test") as e:
             path = "$user"
-            abspath = spack.util.path.canonicalize_path(path, e.path)
+            abspath = spack.util.path.canonicalize_path(
+                path, e.path,
+                replacements=spack.paths.path_replacements()
+            )
 
             def check_path(stage, dest):
                 assert dest == abspath

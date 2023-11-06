@@ -11,6 +11,7 @@ import spack.cmd
 import spack.config
 import spack.fetch_strategy
 import spack.repo
+import spack.paths
 import spack.spec
 import spack.util.path
 import spack.version
@@ -92,7 +93,9 @@ def develop(parser, args):
         # download all dev specs
         for name, entry in env.dev_specs.items():
             path = entry.get("path", name)
-            abspath = spack.util.path.canonicalize_path(path, default_wd=env.path)
+            abspath = spack.util.path.canonicalize_path(
+                path, default_wd=env.path, replacements=spack.paths.path_replacements()
+            )
 
             if os.path.exists(abspath):
                 msg = "Skipping developer download of %s" % entry["spec"]
@@ -125,7 +128,9 @@ def develop(parser, args):
     path = args.path or spec.name
     if not os.path.isabs(path):
         env = spack.cmd.require_active_env(cmd_name="develop")
-        abspath = spack.util.path.canonicalize_path(path, default_wd=env.path)
+        abspath = spack.util.path.canonicalize_path(
+            path, default_wd=env.path, replacements=spack.paths.path_replacements()
+        )
     else:
         abspath = path
 

@@ -91,7 +91,8 @@ env_subdir_name = ".spack-env"
 def env_root_path() -> str:
     """Override default root path if the user specified it"""
     return spack.util.path.canonicalize_path(
-        spack.config.get("config:environments_root", default=default_env_path)
+        spack.config.get("config:environments_root", default=default_env_path),
+        replacements=spack.paths.path_replacements(),
     )
 
 
@@ -602,7 +603,9 @@ class ViewDescriptor:
     ):
         self.base = base_path
         self.raw_root = root
-        self.root = spack.util.path.canonicalize_path(root, default_wd=base_path)
+        self.root = spack.util.path.canonicalize_path(
+            root, default_wd=base_path, replacements=spack.paths.path_replacements()
+        )
         self.projections = projections
         self.select = select
         self.exclude = exclude
@@ -617,7 +620,9 @@ class ViewDescriptor:
 
     def update_root(self, new_path):
         self.raw_root = new_path
-        self.root = spack.util.path.canonicalize_path(new_path, default_wd=self.base)
+        self.root = spack.util.path.canonicalize_path(
+            new_path, default_wd=self.base, replacements=spack.paths.path_replacements()
+        )
 
     def __eq__(self, other):
         return all(
