@@ -486,7 +486,8 @@ def _process_binary_cache_tarball(
 
     tty.msg(f"Extracting {package_id(pkg.spec)} from binary cache")
 
-    with timer.measure("install"), spack.util.path.filter_padding():
+    padding = spack.config.get("config:install_tree:padded_length", None)
+    with timer.measure("install"), spack.util.path.filter_padding(padding=padding):
         binary_distribution.extract_tarball(pkg.spec, download_result, force=False, timer=timer)
         pkg.windows_establish_runtime_linkage()
 
@@ -2443,7 +2444,8 @@ def build_process(pkg: "spack.package_base.PackageBase", install_args: dict) -> 
     installer = BuildProcessInstaller(pkg, install_args)
 
     # don't print long padded paths in executable debug output.
-    with spack.util.path.filter_padding():
+    padding = spack.config.get("config:install_tree:padded_length", None)
+    with spack.util.path.filter_padding(padding=padding):
         return installer.run()
 
 
