@@ -47,6 +47,7 @@ import spack.deptypes as dt
 import spack.environment
 import spack.error
 import spack.modules.common
+import spack.package_prefs as pp
 import spack.paths
 import spack.projections as proj
 import spack.repo
@@ -56,7 +57,6 @@ import spack.store
 import spack.tengine as tengine
 import spack.user_environment
 import spack.util.environment
-import spack.util.file_permissions as fp
 import spack.util.path
 import spack.util.spack_yaml as syaml
 from spack.context import Context
@@ -968,7 +968,7 @@ class BaseModuleFileWriter:
 
         # Set the file permissions of the module to match that of the package
         if os.path.exists(self.layout.filename):
-            fp.set_permissions_by_spec(self.layout.filename, self.spec)
+            pp.set_permissions_by_spec(self.layout.filename, self.spec)
 
         # Symlink defaults if needed
         self.update_module_defaults()
