@@ -65,6 +65,7 @@ from spack.install_test import (
     install_test_root,
 )
 from spack.installer import InstallError, PackageInstaller
+from spack.package_hash import package_hash
 from spack.stage import DevelopStage, ResourceStage, Stage, StageComposite, compute_stage_name
 from spack.util.executable import ProcessError, which
 from spack.util.package_hash import package_hash
@@ -910,8 +911,9 @@ class PackageBase(WindowsRPath, PackageViewMixin, RedistributionMixin, metaclass
     @classproperty
     def global_license_dir(cls):
         """Returns the directory where license files for all packages are stored."""
-        return spack.util.path.canonicalize_path(spack.config.get("config:license_dir"),
-                                                 replacements=spack.paths.path_replacements())
+        return spack.util.path.canonicalize_path(
+            spack.config.get("config:license_dir"), replacements=spack.paths.path_replacements()
+        )
 
     @property
     def global_license_file(self):
@@ -1089,11 +1091,11 @@ class PackageBase(WindowsRPath, PackageViewMixin, RedistributionMixin, metaclass
 
         for u in urls:
             if spack.util.web.url_exists(
-                    u,
-                    fetch_method=spack.config.get('config:url_fetch_method', 'urllib'),
-                    verify_ssl=spack.config.get('config:verify_ssl'),
-                    timeout=spack.config.get('config:connect_timeout', 10)
-                    ):
+                u,
+                fetch_method=spack.config.get("config:url_fetch_method", "urllib"),
+                verify_ssl=spack.config.get("config:verify_ssl"),
+                timeout=spack.config.get("config:connect_timeout", 10),
+            ):
                 return u
 
         return None
