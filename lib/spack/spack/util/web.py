@@ -26,11 +26,7 @@ import llnl.url
 from llnl.util import lang, tty
 from llnl.util.filesystem import mkdirp, rename, working_dir
 
-<<<<<<< HEAD
-import spack.config
 import spack.util.path
-=======
->>>>>>> bc06e2bc17 (Isolate util/web)
 import spack.util.url as url_util
 import spack.util.error
 
@@ -117,18 +113,23 @@ def set_curl_env_for_ssl_certs(curl: Executable) -> None:
 
 
 def _urlopen():
-    s3 = UrllibS3Handler()
+    s3_with_ssl = UrllibS3Handler(verify_ssl=True)
+    s3_no_ssl = UrllibS3Handler(verify_ssl=False)
     gcs = GCSHandler()
     error_handler = SpackHTTPDefaultErrorHandler()
 
     # One opener with HTTPS ssl enabled
     with_ssl = build_opener(
+<<<<<<< HEAD
         s3, gcs, HTTPSHandler(context=ssl_create_default_context()), error_handler
+=======
+        s3_with_ssl, gcs, HTTPSHandler(context=ssl.create_default_context()), error_handler
+>>>>>>> 0b92a19620 (isolate util/s3)
     )
 
     # One opener with HTTPS ssl disabled
     without_ssl = build_opener(
-        s3, gcs, HTTPSHandler(context=ssl._create_unverified_context()), error_handler
+        s3_no_ssl, gcs, HTTPSHandler(context=ssl._create_unverified_context()), error_handler
     )
 
     # And dynamically dispatch based on the config:verify_ssl.
@@ -220,7 +221,9 @@ def read_from_url(url, accept_content_type=None, verify_ssl=True, timeout=10, **
     return response.geturl(), response.headers, response
 
 
-def push_to_url(local_file_path, remote_path, keep_original=True, extra_args=None):
+def push_to_url(
+    local_file_path, remote_path, keep_original=True, extra_args=None, verify_ssl=True
+):
     remote_url = urllib.parse.urlparse(remote_path)
     if remote_url.scheme == "file":
         remote_file_path = url_util.local_file_path(remote_url)
@@ -249,7 +252,7 @@ def push_to_url(local_file_path, remote_path, keep_original=True, extra_args=Non
         while remote_path.startswith("/"):
             remote_path = remote_path[1:]
 
-        s3 = get_s3_session(remote_url, method="push")
+        s3 = get_s3_session(remote_url, method="push", verify_ssl=verify_ssl)
         s3.upload_file(local_file_path, remote_url.netloc, remote_path, ExtraArgs=extra_args)
 
         if not keep_original:
@@ -397,9 +400,7 @@ def fetch_url_text(url, curl=None, dest_dir=".", fetch_method=None):
 
             returncode = response.getcode()
             if returncode and returncode != 200:
-                raise WebError(
-                    "Urllib failed with error code {0}".format(returncode)
-                )
+                raise WebError("Urllib failed with error code {0}".format(returncode))
 
             output = codecs.getreader("utf-8")(response).read()
             if output:
@@ -450,8 +451,7 @@ def url_exists(url, curl=None, fetch_method=None, verify_ssl=True, timeout=10):
     # Otherwise use urllib.
     try:
         urlopen(
-            Request(url, method="HEAD", headers={"User-Agent": SPACK_USER_AGENT}),
-            timeout=timeout,
+            Request(url, method="HEAD", headers={"User-Agent": SPACK_USER_AGENT}), timeout=timeout
         )
         return True
     except URLError as e:
@@ -468,7 +468,7 @@ def _debug_print_delete_results(result):
             tty.debug("Failed to delete {0} ({1})".format(e["Key"], e["Message"]))
 
 
-def remove_url(url, recursive=False):
+def remove_url(url, recursive=False, verify_ssl=True):
     url = urllib.parse.urlparse(url)
 
     local_path = url_util.local_file_path(url)
@@ -481,7 +481,7 @@ def remove_url(url, recursive=False):
 
     if url.scheme == "s3":
         # Try to find a mirror for potential connection information
-        s3 = get_s3_session(url, method="push")
+        s3 = get_s3_session(url, method="push", verify_ssl=verify_ssl)
         bucket = url.netloc
         if recursive:
             # Because list_objects_v2 can only return up to 1000 items
@@ -577,7 +577,7 @@ def _iter_local_prefix(path):
             yield os.path.relpath(os.path.join(root, f), path)
 
 
-def list_url(url, recursive=False):
+def list_url(url, recursive=False, verify_ssl=True):
     url = urllib.parse.urlparse(url)
     local_path = url_util.local_file_path(url)
 
@@ -592,7 +592,7 @@ def list_url(url, recursive=False):
         ]
 
     if url.scheme == "s3":
-        s3 = get_s3_session(url, method="fetch")
+        s3 = get_s3_session(url, method="fetch", verify_ssl=verify_ssl)
         if recursive:
             return list(_iter_s3_prefix(s3, url))
 

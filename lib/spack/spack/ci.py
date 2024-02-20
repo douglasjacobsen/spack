@@ -2069,7 +2069,11 @@ def write_broken_spec(url, pkg_name, stack_name, job_url, pipeline_url, spec_dic
         with open(file_path, "w") as fd:
             fd.write(syaml.dump(broken_spec_details))
         web_util.push_to_url(
-            file_path, url, keep_original=False, extra_args={"ContentType": "text/plain"}
+            file_path,
+            url,
+            keep_original=False,
+            extra_args={"ContentType": "text/plain"},
+            verify_ssl=spack.config.get("config:verify_ssl", True),
         )
     except Exception as err:
         # If there is an S3 error (e.g., access denied or connection

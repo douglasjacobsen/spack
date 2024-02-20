@@ -288,7 +288,7 @@ def test_gather_s3_information(monkeypatch, capfd):
         }
     )
 
-    session_args, client_args = spack.util.s3.get_mirror_s3_connection_info(mirror, "push")
+    session_args, client_args = spack.util.s3.get_mirror_s3_connection_info(mirror, "push", False)
 
     # Session args are used to create the S3 Session object
     assert "aws_session_token" in session_args
@@ -308,7 +308,7 @@ def test_gather_s3_information(monkeypatch, capfd):
 def test_remove_s3_url(monkeypatch, capfd):
     fake_s3_url = "s3://my-bucket/subdirectory/mirror"
 
-    def get_s3_session(url, method="fetch"):
+    def get_s3_session(url, method="fetch", verify_ssl=True):
         return MockS3Client()
 
     monkeypatch.setattr(spack.util.web, "get_s3_session", get_s3_session)
@@ -316,7 +316,9 @@ def test_remove_s3_url(monkeypatch, capfd):
     current_debug_level = tty.debug_level()
     tty.set_debug(1)
 
-    spack.util.web.remove_url(fake_s3_url, recursive=True)
+    spack.util.web.remove_url(
+        fake_s3_url, recursive=True, verify_ssl=spack.config.get("config:verify_ssl", True)
+    )
     err = capfd.readouterr()[1]
 
     tty.set_debug(current_debug_level)
@@ -327,26 +329,26 @@ def test_remove_s3_url(monkeypatch, capfd):
 
 
 def test_s3_url_exists(monkeypatch, capfd):
-    def get_s3_session(url, method="fetch"):
+    def get_s3_session(url, method="fetch", verify_ssl=True):
         return MockS3Client()
 
     monkeypatch.setattr(spack.util.s3, "get_s3_session", get_s3_session)
 
     fake_s3_url_exists = "s3://my-bucket/subdirectory/my-file"
     assert spack.util.web.url_exists(
-            fake_s3_url_exists,
-            fetch_method=spack.config.get('config:url_fetch_method', 'urllib'),
-            verify_ssl=spack.config.get('config:verify_ssl'),
-            timeout=spack.config.get('config:connect_timeout', 10)
-            )
+        fake_s3_url_exists,
+        fetch_method=spack.config.get("config:url_fetch_method", "urllib"),
+        verify_ssl=spack.config.get("config:verify_ssl"),
+        timeout=spack.config.get("config:connect_timeout", 10),
+    )
 
     fake_s3_url_does_not_exist = "s3://my-bucket/subdirectory/my-notfound-file"
     assert not spack.util.web.url_exists(
-            fake_s3_url_does_not_exist,
-            fetch_method=spack.config.get('config:url_fetch_method', 'urllib'),
-            verify_ssl=spack.config.get('config:verify_ssl'),
-            timeout=spack.config.get('config:connect_timeout', 10)
-            )
+        fake_s3_url_does_not_exist,
+        fetch_method=spack.config.get("config:url_fetch_method", "urllib"),
+        verify_ssl=spack.config.get("config:verify_ssl"),
+        timeout=spack.config.get("config:connect_timeout", 10),
+    )
 
 
 def test_s3_url_parsing():
