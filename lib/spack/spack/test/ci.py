@@ -13,9 +13,10 @@ import spack.ci as ci
 import spack.config
 import spack.environment as ev
 import spack.error
+import spack.gpg
 import spack.paths as spack_paths
 import spack.util.git
-import spack.util.gpg
+import spack.util.spack_yaml as syaml
 
 
 @pytest.fixture

@@ -27,8 +27,8 @@ from llnl.util import lang, tty
 from llnl.util.filesystem import mkdirp, rename, working_dir
 
 import spack.util.path
-import spack.util.url as url_util
 import spack.util.error
+import spack.util.url as url_util
 
 from .executable import CommandNotFoundError, Executable, which
 from .gcs import GCSBlob, GCSBucket, GCSHandler
@@ -120,11 +120,7 @@ def _urlopen():
 
     # One opener with HTTPS ssl enabled
     with_ssl = build_opener(
-<<<<<<< HEAD
-        s3, gcs, HTTPSHandler(context=ssl_create_default_context()), error_handler
-=======
         s3_with_ssl, gcs, HTTPSHandler(context=ssl.create_default_context()), error_handler
->>>>>>> 0b92a19620 (isolate util/s3)
     )
 
     # One opener with HTTPS ssl disabled

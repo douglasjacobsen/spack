@@ -19,11 +19,11 @@ import spack.ci as ci
 import spack.cmd.ci
 import spack.config
 import spack.environment as ev
+import spack.gpg
 import spack.hash_types as ht
 import spack.main
 import spack.paths as spack_paths
 import spack.repo as repo
-import spack.util.gpg
 import spack.util.spack_yaml as syaml
 import spack.util.url as url_util
 from spack.cmd.ci import FAILED_CREATE_BUILDCACHE_CODE

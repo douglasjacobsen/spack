@@ -379,6 +379,7 @@ def which(*args, **kwargs):
 class EditorError(spack.util.error.UtilityError):
     """Base error for all errors from the executable utility"""
 
+
 class ProcessError(EditorError):
     """ProcessErrors are raised when Executables exit with an error code."""
 

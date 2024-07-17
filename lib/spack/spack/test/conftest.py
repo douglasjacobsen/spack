@@ -43,6 +43,7 @@ import spack.database
 import spack.directory_layout
 import spack.environment as ev
 import spack.error
+import spack.gpg
 import spack.package_base
 import spack.package_prefs
 import spack.paths
@@ -55,7 +56,6 @@ import spack.subprocess_context
 import spack.test.cray_manifest
 import spack.util.executable
 import spack.util.git
-import spack.util.gpg
 import spack.util.spack_yaml as syaml
 import spack.util.url as url_util
 import spack.version
@@ -1088,13 +1088,13 @@ def mock_gnupghome(monkeypatch):
     # This comes up because tmp paths on macOS are already long-ish, and
     # pytest makes them longer.
     try:
-        spack.util.gpg.init(gpg_path=spack.paths.gpg_path)
-    except spack.util.gpg.SpackGPGError:
-        if not spack.util.gpg.GPG:
+        spack.gpg.init(gpg_path=spack.paths.gpg_path)
+    except spack.gpg.SpackGPGError:
+        if not spack.gpg.GPG:
             pytest.skip("This test requires gpg")
 
     short_name_tmpdir = tempfile.mkdtemp()
-    with spack.util.gpg.gnupghome_override(short_name_tmpdir):
+    with spack.gpg.gnupghome_override(short_name_tmpdir):
         yield short_name_tmpdir
 
     # clean up, since we are doing this manually

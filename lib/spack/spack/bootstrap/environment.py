@@ -59,7 +59,7 @@ class BootstrapEnvironment(spack.environment.Environment):
         return pathlib.Path(
             spack.util.path.canonicalize_path(
                 os.path.join(bootstrap_root_path, "environments", environment_dir),
-                replacements=spack.paths.path_replacements()
+                replacements=spack.paths.path_replacements(),
             )
         )
 
