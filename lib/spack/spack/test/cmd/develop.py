@@ -122,8 +122,7 @@ class TestDevelop:
         with ev.read("test") as e:
             path = "../$user"
             abspath = spack.util.path.canonicalize_path(
-                path, e.path,
-                replacements=spack.paths.path_replacements()
+                path, e.path, replacements=spack.paths.path_replacements()
             )
 
             def check_path(stage, dest):
@@ -142,8 +141,7 @@ class TestDevelop:
         with ev.read("test") as e:
             path = "$user"
             abspath = spack.util.path.canonicalize_path(
-                path, e.path,
-                replacements=spack.paths.path_replacements()
+                path, e.path, replacements=spack.paths.path_replacements()
             )
 
             def check_path(stage, dest):
