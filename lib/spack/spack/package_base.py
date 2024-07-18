@@ -68,7 +68,6 @@ from spack.installer import InstallError, PackageInstaller
 from spack.package_hash import package_hash
 from spack.stage import DevelopStage, ResourceStage, Stage, StageComposite, compute_stage_name
 from spack.util.executable import ProcessError, which
-from spack.util.package_hash import package_hash
 from spack.version import GitVersion, StandardVersion
 
 FLAG_HANDLER_RETURN_TYPE = Tuple[
