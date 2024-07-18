@@ -1002,7 +1002,7 @@ def interactive_version_filter(
                 f.write(data)
 
             # Open editor
-            editor(filepath, exec_fn=executable)
+            editor(filepath, exec_fn=executable, debug=spack.config.get("config:debug", False))
 
             # Read back in
             with open(filepath, "r") as f:
