@@ -883,7 +883,9 @@ def generate_gitlab_ci_yaml(
             # a url protocol that allows us to iterate the url in advance.
             tty.msg("Cannot use an http(s) url for broken specs, ignoring")
         else:
-            broken_spec_urls = web_util.list_url(broken_specs_url)
+            broken_spec_urls = web_util.list_url(
+                broken_specs_url, verify_ssl=spack.config.get("config:verify_ssl", True)
+            )
 
     spack_ci = SpackCI(ci_config, spec_labels, stages)
     spack_ci_ir = spack_ci.generate_ir()

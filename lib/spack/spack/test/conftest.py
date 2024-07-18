@@ -58,6 +58,7 @@ import spack.util.executable
 import spack.util.git
 import spack.util.spack_yaml as syaml
 import spack.util.url as url_util
+import spack.util.web
 import spack.version
 from spack.fetch_strategy import URLFetchStrategy
 from spack.util.pattern import Bunch

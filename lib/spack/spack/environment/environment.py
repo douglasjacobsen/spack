@@ -394,8 +394,11 @@ def _rewrite_relative_dev_paths_on_relocation(env, init_file_dir):
         if not dev_specs:
             return
         for name, entry in dev_specs.items():
-            dev_path = substitute_path_variables(entry["path"])
-            expanded_path = spack.util.path.canonicalize_path(dev_path, default_wd=init_file_dir)
+            replacements = spack.paths.path_replacements()
+            dev_path = substitute_path_variables(entry["path"], replacements=replacements)
+            expanded_path = spack.util.path.canonicalize_path(
+                dev_path, default_wd=init_file_dir, replacements=replacements
+            )
 
             # Skip if the expanded path is the same (e.g. when absolute)
             if dev_path == expanded_path:
@@ -3046,7 +3049,9 @@ class EnvironmentManifestFile(collections.abc.Mapping):
         missing = []
         for i, config_path in enumerate(reversed(includes)):
             # allow paths to contain spack config/environment variables, etc.
-            config_path = substitute_path_variables(config_path)
+            config_path = substitute_path_variables(
+                config_path, replacements=spack.paths.path_replacements()
+            )
             include_url = urllib.parse.urlparse(config_path)
 
             # If scheme is not valid, config_path is not a url

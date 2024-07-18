@@ -465,7 +465,7 @@ def test_generate_index_missing(monkeypatch, tmpdir, mutable_config):
 
 
 def test_generate_key_index_failure(monkeypatch):
-    def list_url(url, recursive=False):
+    def list_url(url, recursive=False, verify_ssl=True):
         if "fails-listing" in url:
             raise Exception("Couldn't list the directory")
         return ["first.pub", "second.pub"]
@@ -484,7 +484,7 @@ def test_generate_key_index_failure(monkeypatch):
 
 
 def test_generate_package_index_failure(monkeypatch, capfd):
-    def mock_list_url(url, recursive=False):
+    def mock_list_url(url, recursive=False, verify_ssl=True):
         raise Exception("Some HTTP error")
 
     monkeypatch.setattr(web_util, "list_url", mock_list_url)
@@ -501,7 +501,7 @@ def test_generate_package_index_failure(monkeypatch, capfd):
 
 
 def test_generate_indices_exception(monkeypatch, capfd):
-    def mock_list_url(url, recursive=False):
+    def mock_list_url(url, recursive=False, verify_ssl=True):
         raise Exception("Test Exception handling")
 
     monkeypatch.setattr(web_util, "list_url", mock_list_url)

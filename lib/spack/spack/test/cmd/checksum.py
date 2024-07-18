@@ -35,7 +35,7 @@ def can_fetch_versions(monkeypatch):
             for v in url_by_version
         }
 
-    def url_exists(url, curl=None):
+    def url_exists(url, *args, **kwargs):
         return True
 
     monkeypatch.setattr(
@@ -55,7 +55,7 @@ def cannot_fetch_versions(monkeypatch):
     def get_checksums_for_versions(url_by_version, package_name, **kwargs):
         return {}
 
-    def url_exists(url, curl=None):
+    def url_exists(url, *args, **kwargs):
         return False
 
     monkeypatch.setattr(
