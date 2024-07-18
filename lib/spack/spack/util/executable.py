@@ -376,11 +376,11 @@ def which(*args, **kwargs):
     return Executable(exe) if exe else None
 
 
-class EditorError(spack.util.error.UtilityError):
+class ExecutableError(spack.util.error.UtilityError):
     """Base error for all errors from the executable utility"""
 
 
-class ProcessError(EditorError):
+class ProcessError(ExecutableError):
     """ProcessErrors are raised when Executables exit with an error code."""
 
 
@@ -389,5 +389,5 @@ class ProcessTimeoutError(ProcessError):
     specified timeout exceed that time"""
 
 
-class CommandNotFoundError(EditorError):
+class CommandNotFoundError(ExecutableError):
     """Raised when ``which()`` can't find a required executable."""
